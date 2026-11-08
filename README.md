@@ -3,10 +3,14 @@
 An OpenSCAD editor that runs in the browser. Type OpenSCAD on the left and see, on the right,
 the solid that the [cadaclysm](https://cadaclysm.blitter.studio/) OpenSCAD reader builds from
 it, redrawn as you type. A mistake is reported with its line, and the view keeps the last file
-that read. The menu holds five example files. You can open a `.scad` file of your own and save
+that read. The menu holds six example files. You can open a `.scad` file of your own and save
 the text back as `.scad`.
 
 The kernel runs in a worker in your browser, so nothing is uploaded.
+
+![The cadaclysm logo nut in the OpenSCAD editor: the program on the left, the part drawn on the right](docs/screenshot.png)
+
+The cadaclysm logo nut, written in OpenSCAD: the last example in the menu (`?example=nut`).
 
 ## Architecture
 
