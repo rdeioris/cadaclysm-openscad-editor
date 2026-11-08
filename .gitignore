@@ -1,0 +1,6 @@
+node_modules/
+# The cadaclysm web package (npm run setup) and the CodeMirror bundle (npm run build).
+pkg/
+vendor/
+# A license of your own.
+*.lic

@@ -1,0 +1,25 @@
+{
+  "name": "cadaclysm-openscad-editor",
+  "version": "0.1.0",
+  "description": "An OpenSCAD editor in the browser: type OpenSCAD and see the B-rep the cadaclysm CAD kernel makes of it.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "repository": "github:rdeioris/cadaclysm-openscad-editor",
+  "homepage": "https://cadaclysm.blitter.studio/",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "build": "esbuild editor.js --bundle --format=esm --minify --outfile=vendor/editor.js",
+    "start": "node scripts/serve.mjs",
+    "test": "node test/openscad.mjs && node test/worker-crash.mjs && node test/editor.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/state": "6.7.5",
+    "@codemirror/view": "6.43.12",
+    "@lezer/highlight": "1.2.3",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.2"
+  }
+}
