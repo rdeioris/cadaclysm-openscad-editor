@@ -120,6 +120,20 @@ color("Silver") for (a = [45 : 90 : 315]) rotate([0, 0, a])
     translate([34, 0, 0]) cylinder(r = 6, h = 30, center = true);
 `,
 },
+{
+    id: "nut",
+    title: "The cadaclysm nut",
+    blurb: "the logo: a hexagon kept where a turned ring is",
+    source: `// The cadaclysm logo nut: a hexagonal prism kept only where a turned ring
+// is, the ring's profile carrying the two chamfer ledges.
+intersection() {
+    cylinder(r = 60, h = 46, $fn = 6);
+    rotate_extrude($fn = 128)
+        polygon([[30, 0], [45, 0], [50, 5], [70, 5],
+                 [70, 41], [50, 41], [45, 46], [30, 46]]);
+}
+`,
+},
 ];
 
 export const STARTER = EXAMPLES[0].source;
