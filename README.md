@@ -1,7 +1,7 @@
 # cadaclysm OpenSCAD editor
 
 An OpenSCAD editor that runs in the browser. Type OpenSCAD on the left and see, on the right,
-the exact B-rep that the [cadaclysm](https://cadaclysm.blitter.studio/) CAD kernel makes of
+the solid that the [cadaclysm](https://cadaclysm.blitter.studio/) OpenSCAD reader builds from
 it, redrawn as you type. A mistake is reported with its line, and the view keeps the last file
 that read. The menu holds five example files. You can open a `.scad` file of your own and save
 the text back as `.scad`.
@@ -17,7 +17,7 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
                 │  view-activation.js   its size, input and picks
                 ▼
             openscad-worker.js (module worker) ── pkg/  (the cadaclysm web package)
-                open(text, "scad") -> Scene      the OpenSCAD reader: exact B-rep
+                open(text, "scad") -> Scene      the OpenSCAD reader: CSG to a mesh
                 viewer-host.js -> View           draws it (WebGPU, WebGL2 fallback)
 ```
 
@@ -27,13 +27,12 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
 - **The worker** (`openscad-worker.js`, a module worker) loads the package's WebAssembly
   module and reads each text with `open(bytes, "scad", undefined, "native")`. This is the same
   OpenSCAD reader that sits behind `cadaclysm.open("part.scad")` in every SDK language. It
-  evaluates the file in the kernel into an exact boundary representation, with the file's own
-  colours. One read runs at a time. The newest text waits behind it, and an answer for text that has since changed is
-  dropped.
+  runs the program and builds its CSG (unions, differences, hulls, extrusions and the rest) as
+  a mesh, with the file's own colours and its feature edges. One read runs at a time. The
+  newest text waits behind it, and an answer for text that has since changed is dropped.
 - **Drawing.** The worker also owns the package's `View`, on an OffscreenCanvas that the page
   hands over (`viewer-client.js` on the page, `viewer-host.js` in the worker). Only the
-  triangle count and the read time come back to the page. The View draws the exact surfaces
-  with WebGPU where the browser has it and falls back to WebGL2 otherwise
+  triangle count and the read time come back to the page. The View draws it with WebGPU where the browser has it and falls back to WebGL2 otherwise
   (`?backend=webgl2` forces it). The camera keeps its place across edits unless the model
   outgrows the frame. Drag to orbit, right-drag to pan, wheel to zoom, double-click to frame
   what you hit.
