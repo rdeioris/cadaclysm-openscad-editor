@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="141 17 148 213" width="148" height="213" role="img" aria-label="Cadaclysm">
+<title>Cadaclysm</title>
+<defs>
+<clipPath id="mesh"><polygon points="238,0 234,120 246,150 238,185 244,230 400,230 400,0"/></clipPath>
+</defs>
+<ellipse id="bore" cx="215" cy="140" rx="36.74" ry="21.21" fill="#1C1B1A"/>
+<g fill="none" stroke="#1C1B1A" stroke-width="2.6" stroke-linejoin="round">
+<polygon points="266.96,170 195.98,180.98 144.02,150.98 163.04,110 234.02,99.02 285.98,129.02"/>
+<ellipse cx="215" cy="140" rx="36.74" ry="21.21"/>
+<path d="M144.02 150.98 L144.02 196.98 M195.98 180.98 L195.98 226.98 M266.96 170 L266.96 216 M285.98 129.02 L285.98 175.02 M144.02 196.98 L195.98 226.98 L266.96 216 L285.98 175.02"/>
+</g>
+<g clip-path="url(#mesh)">
+<path fill="#5F5E5A" fill-rule="evenodd" d="M231.47 175.49 L170 165.98 L153.53 130.49 L198.53 104.51 L260 114.02 L276.47 149.51 Z M240.98 155 L230.53 159.23 L218.2 161.13 L205.49 160.49 L193.92 157.38 L184.9 152.17 L179.51 145.49 L178.4 138.15 L181.7 131.03 L189.02 125 L199.47 120.77 L211.8 118.87 L224.51 119.51 L236.08 122.62 L245.1 127.83 L250.49 134.51 L251.6 141.85 L248.3 148.97 Z"/>
+<g fill="#1C1B1A">
+<polygon points="266.96,170 276.47,149.51 231.47,175.49"/><polygon points="234.02,99.02 198.53,104.51 260,114.02"/><polygon points="285.98,129.02 260,114.02 276.47,149.51"/>
+</g>
+<g fill="#5F5E5A">
+<polygon points="195.98,180.98 266.96,170 266.96,216 195.98,226.98"/><polygon points="266.96,170 285.98,129.02 285.98,175.02 266.96,216"/>
+</g>
+</g>
+<g fill="none" stroke="#378ADD" stroke-linecap="round" stroke-linejoin="miter">
+<path stroke-width="9" d="M192 24 L204.07 30.09 L204.13 37.91 L216.2 44 L214.93 51.98 L208.27 54.02 L207 62 L220.36 65.58 L223.24 74.42 L236.6 78"/>
+<path stroke-width="7" d="M236.6 78 L228.5 90 L246.9 99 L242.5 106"/>
+<path stroke-width="5" d="M242.5 106 L253 112 L252 118 L258 124"/>
+</g>
+</svg>

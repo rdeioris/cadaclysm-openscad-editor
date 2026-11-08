@@ -1,0 +1,44 @@
+/* What every page of cadaclysm.blitter.studio shares: the palette (blue belongs to the
+   discharge, the links and one button; the graphite is never anything else), the display
+   font, the header and the footer. */
+@font-face {
+  font-family: "Quantico";
+  src: url("font/Quantico-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+:root {
+  --bg: #1C1B1A; --fg: #F1EFE8; --muted: #B4B2A9; --rule: #3A3937;
+  --blue: #378ADD; --core: #E6F1FB;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --display: "Quantico", "Arial Narrow", sans-serif;
+}
+.wrap { max-width: 1248px; margin: 0 auto; padding-inline: 16px; }
+
+/* Header */
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-block: 28px; }
+.nav .brand { display: flex; align-items: center; gap: 14px; color: var(--fg); font-family: var(--display); font-weight: 700; font-size: clamp(26px, 2.4vw, 34px); letter-spacing: 0.06em; }
+.nav .brand img { width: clamp(52px, 4vw, 60px); height: clamp(52px, 4vw, 60px); }
+.nav .links { display: flex; gap: 28px; flex-wrap: wrap; font-size: 15px; }
+.nav .links a { color: var(--muted); }
+/* On an app page whose own links are underlined, the header's and the footer's are the site's. */
+.nav a, .foot a { text-decoration: none; }
+.nav a:hover, .foot a:hover { text-decoration: underline; }
+.nav .links a[aria-current] { color: var(--fg); }
+/* Game Engines opens a list of the engine pages on hover or keyboard focus -- CSS
+   only, as the site has no script. A touch screen follows the link to the hub page,
+   which lists the same four. */
+.nav .menu { position: relative; }
+.nav .menu > a::after { content: " ▾"; font-size: 0.8em; }
+.nav .submenu { display: none; position: absolute; top: 100%; left: -18px; z-index: 10; flex-direction: column; min-width: 280px; padding: 10px 0; background: var(--bg); border: 1px solid var(--rule); }
+.nav .menu:hover .submenu, .nav .menu:focus-within .submenu { display: flex; }
+.nav .submenu a { padding: 8px 18px; white-space: nowrap; }
+.nav .submenu a:hover { color: var(--fg); text-decoration: none; background: rgba(241,239,232,0.05); }
+/* A heading inside a menu (Docs > Tutorials): the eyebrow's type, under a rule. */
+.nav .submenu .subhead { margin-top: 8px; padding: 12px 18px 4px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+@media (hover: none) { .nav .menu:hover .submenu { display: none; } }
+
+/* Footer */
+.foot { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-top: 72px; padding-block: 24px 48px; font-size: 14px; color: var(--muted); }
+.foot a { color: var(--blue); }

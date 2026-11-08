@@ -1,0 +1,88 @@
+:root {
+  --bg: #1C1B1A; --fg: #F1EFE8; --muted: #B4B2A9; --rule: #3A3937; --blue: #378ADD; --core: #E6F1FB;
+  --cell: #232221; --out: #1F1E1D; --red: #E5646A; --green: #7CC48A; --amber: #E0B25A;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --display: "Quantico", "Arial Narrow", sans-serif;
+}
+* { box-sizing: border-box; }
+html { color-scheme: dark; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--sans); }
+a { color: var(--blue); text-decoration: none; }
+h2 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin: 0; line-height: 1.1; font-size: clamp(26px, 3vw, 36px); }
+.eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-top: 36px; }
+.head p { margin: 8px 0 0; color: var(--muted); max-width: 640px; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tb { font-family: var(--mono); font-size: 13px; padding: 8px 12px; border: 1px solid #5F5E5A; color: var(--fg); background: none; cursor: pointer; }
+.tb:hover { border-color: var(--fg); }
+.tb:disabled { opacity: 0.4; cursor: default; }
+.tb.primary { border-color: var(--blue); background: var(--blue); color: var(--bg); font-weight: 600; }
+.tb.danger { border-color: #7a3b3e; color: #f0a1a5; }
+select.tb { appearance: none; -webkit-appearance: none; padding-right: 28px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23b8b6b0'/%3E%3C/svg%3E") no-repeat right 10px center; max-width: 46vw; }
+select.tb option { background: var(--cell); color: var(--fg); }
+#kernel { font-family: var(--mono); font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+#kernel .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); display: inline-block; }
+#kernel.ready .dot { background: var(--green); }
+#kernel.dead .dot { background: var(--red); }
+#cells { display: flex; flex-direction: column; gap: 20px; margin-top: 28px; }
+.cell { display: grid; grid-template-columns: 64px 1fr; border: 1px solid var(--rule); }
+.cell:focus-within { border-color: var(--blue); }
+.gutter { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 12px 8px; text-align: right; border-right: 1px solid var(--rule); background: var(--cell); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+.gutter.stale { color: #6f6e69; }
+.gutter button { background: none; border: 0; color: var(--blue); cursor: pointer; font-size: 15px; padding: 0; }
+.gutter button.delete { color: var(--muted); font-size: 13px; }
+.code { background: var(--cell); min-width: 0; }   /* the CodeMirror editor (editor.js) styles the rest */
+.out { grid-column: 1 / -1; border-top: 1px solid var(--rule); background: var(--out); }
+.out:empty { display: none; }
+.stdout, .err { font-family: var(--mono); font-size: 13.5px; padding: 12px 16px 12px 80px; white-space: pre-wrap; margin: 0; }
+.err { color: var(--red); }
+.stdout .stderr { color: var(--amber); }
+.view { position: relative; margin: 0 16px 16px 80px; height: 320px; border: 1px solid var(--rule); }
+.view.active { border-color: var(--blue); }
+/* Touch scrolls the page over a view until a tap turns it on (view-activation.js `activationListen`). */
+.view canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: pan-x pan-y pinch-zoom; }
+.view.active canvas { touch-action: none; }
+.view .cap { position: absolute; left: 12px; bottom: 10px; font-family: var(--mono); font-size: 12px; color: var(--muted); pointer-events: none; }
+/* Which solids are closed: a chip per solid, top left (notebook.js `legendElement`). */
+.view .legend { position: absolute; left: 12px; top: 10px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; font-family: var(--mono); font-size: 12px; }
+.view .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.35); color: var(--muted); }
+.view .chip i { width: 9px; height: 9px; border-radius: 50%; }
+.view .chip.closed { color: var(--green); }
+.view .chip.open { color: var(--amber); }
+.view .chip.pinched { color: var(--red); }
+.view .hint { position: absolute; right: 12px; bottom: 10px; font-family: var(--mono); font-size: 12px; color: #6f6e69; pointer-events: none; }
+.view .touch { display: none; position: absolute; right: 12px; top: 10px; font-family: var(--mono); font-size: 12px; color: #6f6e69; pointer-events: none; }
+.view .touch .on, .view.active .touch .off { display: none; }
+.view.active .touch .on { display: inline; color: var(--blue); }
+@media (pointer: coarse) { .view .hint { display: none; } .view .touch { display: block; } .view .legend { top: 32px; } }
+.view .gone { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted, #8a8f98); font-size: 13px; }
+.view .cap.error { color: #f66; }
+/* A played job's controls (timeline-controls.js), under its view. */
+.transport { margin: -8px 16px 16px 80px; display: grid; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.transport:empty { display: none; }
+.transport .cadaclysm-timeline, .transport .cadaclysm-machining { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.transport button, .transport select { font-family: var(--mono); font-size: 12px; padding: 4px 10px; border: 1px solid #5F5E5A; color: var(--fg); background: none; cursor: pointer; }
+.transport button:hover, .transport select:hover { border-color: var(--fg); }
+.transport select option { background: var(--cell); color: var(--fg); }
+.transport .cadaclysm-timeline-scrubber { flex: 1 1 200px; min-width: 120px; accent-color: var(--blue); }
+.transport .cadaclysm-timeline-tracks { flex: 1 0 100%; background: var(--cell); border: 1px solid var(--rule); }
+.transport .cadaclysm-timeline-marker { width: 1px; }
+.transport .cadaclysm-timeline-status { flex: 1 0 100%; white-space: pre-wrap; }
+@media (max-width: 720px) { .transport { margin-left: 16px; } }
+.toolbar label.tb { display: inline-flex; align-items: center; gap: 4px; }
+.busy { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); padding: 12px 16px 12px 80px; }
+.busy .bar { flex: 1; max-width: 320px; height: 6px; border: 1px solid var(--rule); }
+.busy .bar i { display: block; width: 0; height: 100%; background: var(--blue); transition: width 80ms; }
+.add { text-align: center; margin: 20px 0 60px; }
+.add .tb { border-style: dashed; color: var(--muted); }
+/* The page's own line -- what runs where, the versions, the third-party licences -- above the site's footer. */
+.credits a { color: #8d8c86; text-decoration: underline; }
+.credits { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: #6f6e69; border-top: 1px solid var(--rule); padding: 18px 0 0; }
+.foot { margin-top: 24px; }
+#unsupported { display: none; padding: 40px 0; color: var(--muted); }
+@media (max-width: 720px) { .cell { grid-template-columns: 44px 1fr; } .stdout, .err, .busy { padding-left: 16px; } .view { margin-left: 16px; } .view .hint { display: none; } }
+/* Files a cell wrote (the JavaScript notebook's `part.step("plate.stp")`), offered as downloads. */
+.written { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; padding: 10px 16px 12px 80px; }
+.written a { text-decoration: underline; }
+@media (max-width: 720px) { .written { padding-left: 16px; } }

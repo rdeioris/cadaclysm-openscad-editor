@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSCAD editor — Cadaclysm</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="chrome.css">
+<link rel="stylesheet" href="notebook.css">
+<style>
+/* The split: the file on the left, the view on the right, each the height of the window
+   below the toolbar; stacked on a narrow screen. The notebook's own styles (notebook.css)
+   give the palette, the toolbar and the view's chrome. */
+/* A compact header: the mark, the name, the links. */
+header.app { max-width: none; display: flex; gap: 20px; align-items: center; padding-block: 12px; }
+header.app h1 { display: flex; align-items: center; gap: 10px; margin: 0 auto 0 0; font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; }
+header.app h1 img { width: 30px; height: 30px; }
+header.app h1 span { color: var(--muted); }
+header.app a { color: var(--muted); text-decoration: none; }
+header.app a:hover { color: var(--fg); text-decoration: underline; }
+main.wrap { max-width: none; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 20px; height: calc(100vh - 250px); min-height: 420px; }
+.split .code { border: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 0; }
+.split .code:focus-within { border-color: var(--blue); }
+#code { flex: 1; min-height: 0; overflow: auto; }
+#code .cm-editor { height: 100%; }
+/* The reader's complaint, under the text it is about; empty, it takes no room. */
+#problem { margin: 0; padding: 10px 16px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 13px; color: var(--red); white-space: pre-wrap; max-height: 9em; overflow: auto; }
+#problem:empty { display: none; }
+.split .view { margin: 0; height: auto; }
+#status { font-family: var(--mono); font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; max-width: 60vw; }
+#status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); display: inline-block; flex: none; }
+#status.ready .dot { background: var(--green); }
+#status.error { color: var(--red); }
+#status.error .dot { background: var(--red); }
+@media (max-width: 900px) {
+  .split { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .split .code { height: 50vh; }
+  .split .view { height: 60vh; }
+}
+</style>
+</head>
+<body>
+<header class="wrap app">
+  <h1><img src="mark-dark.svg" alt="" width="30" height="30">cadaclysm <span>OpenSCAD editor</span></h1>
+  <a href="https://github.com/rdeioris/cadaclysm-sdk">SDK</a>
+  <a href="https://cadaclysm.blitter.studio/">cadaclysm.blitter.studio</a>
+</header>
+<main class="wrap">
+  <div class="head">
+    <div>
+      <span class="eyebrow">Try the reader</span>
+      <h2>OpenSCAD, drawn as you type</h2>
+      <p>The OpenSCAD reader the library ships -- the one behind <code>cadaclysm.open("part.scad")</code> in every language, the viewer and the desktop apps -- running in your browser. Edit the file on the left and the mesh on the right follows; a mistake is reported with its line. Drag to orbit, Shift+drag to pan, wheel to zoom. The menu holds more files; yours can be opened and saved, and nothing is uploaded.</p>
+    </div>
+    <div class="toolbar">
+      <span id="status"><span class="dot"></span><span id="status-text">loading…</span></span>
+      <select class="tb" id="example" title="An example file: it replaces the text"></select>
+      <button class="tb" id="open" title="A .scad file of your own, read in this page -- nothing is uploaded">Open a file…</button>
+      <input type="file" id="file" accept=".scad" hidden>
+      <button class="tb" id="download">Save .scad</button>
+    </div>
+  </div>
+  <p id="unsupported">This page needs WebGL2, module workers and WebAssembly. <a href="https://cadaclysm.blitter.studio/mobile_demo/" target="_blank" rel="noopener">The viewer</a> may still work here.</p>
+  <div class="split">
+    <div class="code"><div id="code"></div><pre id="problem"></pre></div>
+    <div class="view" id="view"><canvas></canvas><span class="hint">drag to orbit · right-drag to pan · wheel to zoom</span><span class="touch"><span class="off">tap to turn the view</span><span class="on">pinch to zoom · two fingers to pan</span></span></div>
+  </div>
+  <div class="credits">
+    <span>the reader runs in a worker in your browser · nothing is uploaded</span>
+    <span id="versions"></span>
+    <span>editor by CodeMirror (MIT) · <a href="THIRD-PARTY.txt">third-party licenses</a></span>
+  </div>
+</main>
+<script type="module" src="openscad.js"></script>
+</body>
+</html>
