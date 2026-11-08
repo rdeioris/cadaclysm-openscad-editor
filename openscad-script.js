@@ -123,14 +123,41 @@ color("Silver") for (a = [45 : 90 : 315]) rotate([0, 0, a])
 {
     id: "nut",
     title: "The cadaclysm nut",
-    blurb: "the logo: a hexagon kept where a turned ring is",
-    source: `// The cadaclysm logo nut: a hexagonal prism kept only where a turned ring
-// is, the ring's profile carrying the two chamfer ledges.
-intersection() {
-    cylinder(r = 60, h = 46, $fn = 6);
-    rotate_extrude($fn = 128)
-        polygon([[30, 0], [45, 0], [50, 5], [70, 5],
-                 [70, 41], [50, 41], [45, 46], [30, 46]]);
+    blurb: "the logo: the nut, struck by lightning; hull for the bolt",
+    source: `// The cadaclysm logo: the nut -- a hexagonal prism kept only where a turned
+// ring is -- struck by lightning, which knocks a faceted chunk out of it.
+module nut() {
+    intersection() {
+        cylinder(r = 60, h = 46, $fn = 6);
+        rotate_extrude($fn = 128)
+            polygon([[30, 0], [45, 0], [50, 5], [70, 5],
+                     [70, 41], [50, 41], [45, 46], [30, 46]]);
+    }
+}
+
+// Where the bolt lands: the hexagon's corner at -60 degrees, at the top.
+strike = [60 * cos(-60), 60 * sin(-60), 46];
+
+// The nut, a faceted chunk knocked out of the struck corner.
+color("#F1EFE8") difference() {
+    nut();
+    translate(strike) rotate([20, 30, 10]) sphere(r = 24, $fn = 6);
+}
+
+// The bolt: rods between jagged points, falling onto the corner.
+module rod(a, b, r = 1.6) {
+    hull() { translate(a) sphere(r, $fn = 8); translate(b) sphere(r, $fn = 8); }
+}
+module bolt(points, r = 1.6) {
+    for (i = [0 : len(points) - 2]) rod(points[i], points[i + 1], r);
+}
+color("#378ADD") {
+    o = strike;
+    bolt([o + [-46, -8, 120], o + [-34, -4, 104], o + [-38, 4, 90], o + [-20, -2, 78],
+          o + [-24, 6, 62], o + [-6, 0, 50], o + [-10, 6, 34], o + [-2, 0, 18], o], 2.6);
+    bolt([o + [-38, 4, 90], o + [-56, 6, 84], o + [-60, 12, 72]], 1.8);
+    bolt([o + [-20, -2, 78], o + [-4, -10, 88], o + [4, -6, 100]], 1.8);
+    bolt([o + [-6, 0, 50], o + [10, 4, 58], o + [16, 0, 70]], 1.8);
 }
 `,
 },

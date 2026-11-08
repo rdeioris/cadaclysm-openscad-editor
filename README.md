@@ -8,9 +8,9 @@ the text back as `.scad`.
 
 The kernel runs in a worker in your browser, so nothing is uploaded.
 
-![The cadaclysm logo nut in the OpenSCAD editor: the program on the left, the part drawn on the right](docs/screenshot.png)
+![The cadaclysm logo in the OpenSCAD editor: the nut struck by lightning, the program on the left, the part drawn on the right](docs/screenshot.png)
 
-The cadaclysm logo nut, written in OpenSCAD: the last example in the menu (`?example=nut`).
+The cadaclysm logo, the nut struck by lightning, written in OpenSCAD: the last example in the menu (`?example=nut`).
 
 ## Architecture
 
