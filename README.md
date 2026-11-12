@@ -34,6 +34,10 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
   runs the program and builds its CSG (unions, differences, hulls, extrusions and the rest) as
   a mesh, with the file's own colours and its feature edges. One read runs at a time. The
   newest text waits behind it, and an answer for text that has since changed is dropped.
+  A fresh file (the first one, a new example, an opened file) is read twice: first with
+  `preview(bytes, "scad", "native")`, the same parts as quick meshes faceted at the file's
+  `$fn`, drawn at once, then exactly. Edits go straight to the exact read. A package without
+  `preview` reads exactly every time.
 - **Drawing.** The worker also owns the package's `View`, on an OffscreenCanvas that the page
   hands over (`viewer-client.js` on the page, `viewer-host.js` in the worker). Only the
   triangle count and the read time come back to the page. The View draws it with WebGPU where the browser has it and falls back to WebGL2 otherwise

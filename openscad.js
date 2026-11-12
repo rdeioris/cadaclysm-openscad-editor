@@ -34,6 +34,10 @@ let worker = null, client = null, ready = false, viewFailed = false;
 // the newest text waiting behind it (an older one is never sent, a keystroke having
 // replaced it), and an answer for a text since replaced is dropped.
 let seq = 0, inflight = null, waiting = null;
+// Whether the next text sent is a fresh file's -- the first, a new example, an opened file,
+// or the one sent again after a restart -- which the worker shows as a quick preview first
+// (`render` in openscad-worker.js); set by `reframe`, cleared by the send.
+let previewNext = true;
 // Set by `restart` just before its `boot()`: the next `ready` re-frames the camera and
 // re-sends the current text, rather than waiting on whatever was already queued in `waiting`.
 let pendingRestart = false;
@@ -77,6 +81,16 @@ async function boot() {
         if (data.kind === "crashed") { restart(data.message); return; }
         if (typeof data.kind === "string" && data.kind.startsWith("view.")) { client?.receive(data); return; }
         if (data.seq !== inflight) return;   // stale: a newer text is on its way
+        if (data.kind === "preview") {
+            // The quick meshes are up; the exact read is still running, so the render is
+            // still in flight.
+            if (!viewFailed) {
+                // Short: a longer line than the final one pushes the toolbar down a row.
+                setStatus(`preview · refining…`, "");
+            }
+            $("problem").textContent = "";
+            return;
+        }
         inflight = null;
         if (data.ok) {
             // Not over a failed view: client.ready's own rejection already said so, and
@@ -137,7 +151,8 @@ function restart(message) {
 function flush() {
     if (!ready || inflight !== null || waiting === null) return;
     inflight = ++seq;
-    worker.postMessage({ kind: "render", seq: inflight, text: waiting });
+    worker.postMessage({ kind: "render", seq: inflight, text: waiting, preview: previewNext });
+    previewNext = false;
     waiting = null;
     setStatus("reading…", "");
 }
@@ -163,8 +178,10 @@ function setText(text) {
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
 }
 
-// A new file resets the camera's framing: the worker always re-frames its next scene.
+// A new file resets the camera's framing: the worker always re-frames its next scene. And it
+// is previewed first.
 function reframe() {
+    previewNext = true;
     worker?.postMessage({ kind: "reframe" });
 }
 

@@ -4,12 +4,14 @@
 // text in, a `Scene` shown in this worker's own View; nothing crosses back but its
 // triangle count and the read time, and nothing is uploaded.
 //
-// Page to worker: `{ kind: "render", seq, text }`, `{ kind: "reframe" }` (a new file: the
+// Page to worker: `{ kind: "render", seq, text, preview }`, `{ kind: "reframe" }` (a new file: the
 // next scene always re-frames the camera, in place of the page's old `framed = false`),
 // plus the bridge's `view.*` messages (viewer-client.js), all handed to the host. Worker to
 // page: `{ kind: "ready", version }` once the wasm is up; after a render, `{ ok: true, kind:
 // "scene", seq, triangles, ms }` (the buffers no longer cross: this worker keeps the
-// `Scene` and shows it itself) or, on failure, `{ ok: false, seq, error }` -- the reader's
+// `Scene` and shows it itself) -- with `preview` set, first `{ ok: true, kind: "preview", seq,
+// triangles, ms }` for the quick meshes shown while the exact read runs (`render` below) -- or,
+// on failure, `{ ok: false, seq, error }` -- the reader's
 // own words, a syntax error's line included; the view keeps the last file that read -- or,
 // if the wasm trapped (a panic, or running out of memory on a huge $fn or a large
 // linear_extrude), `{ kind: "crashed", message }`, the page's cue to remake the worker and
@@ -70,6 +72,19 @@ let shown = null; // { item } | null
 // not even arrived): its Scene is kept here -- still unfreed -- and shown, the same way,
 // once view.ready posts.
 let pendingScene = null;
+
+// The exact read behind a preview, while the preview waits for the view to exist: run once
+// view.ready has shown the preview (a frame later, as `afterDraw` does), or at once if the
+// view failed and nothing will draw it.
+let afterView = null;
+
+// Runs `fn` once the scene just shown has had a frame to draw in: a rAF callback queued
+// behind the draw's own, which hands off to a task so `fn` does not hold that frame up. With
+// no view yet, after view.ready (or at once on view.failed): see `post`.
+function afterDraw(fn) {
+    if (!host.views.get(VIEW_ID)) { afterView = fn; return; }
+    schedule(() => setTimeout(fn, 0));
+}
 
 function keeps(bounds) {
     if (!framedAt) return false;
@@ -133,8 +148,10 @@ function showScene(scene) {
 // Wraps the host's own `post`: forwards every message to the page unchanged, but on
 // view.ready for the one view here also shows a scene left waiting for it -- the host has
 // already put this view's View into `host.views` by the time it calls post() (its
-// create(): views.set() runs before the view.ready post), so showScene() above can reach it.
-function post(message, transfer) {
+// create(): views.set() runs before the view.ready post), so showScene() above can reach it --
+// and then lets an exact read waiting on that preview (`afterView`) follow it a frame later;
+// on view.failed that read runs at once. Exported for test/worker-crash.mjs.
+export function post(message, transfer) {
     self.postMessage(message, transfer);
     if (message.kind === "view.ready" && message.id === VIEW_ID && pendingScene) {
         const scene = pendingScene;
@@ -145,6 +162,13 @@ function post(message, transfer) {
             if (trapped(e)) self.postMessage({ kind: "crashed", message: String(e?.message ?? e) });
             else throw e;
         }
+    }
+    // After the preview above is shown (and its draw asked for), not before.
+    if (message.id === VIEW_ID && afterView && (message.kind === "view.ready" || message.kind === "view.failed")) {
+        const fn = afterView;
+        afterView = null;
+        if (message.kind === "view.ready") afterDraw(fn);
+        else setTimeout(fn, 0);
     }
 }
 
@@ -157,35 +181,56 @@ const LICENSE = null;
 const ready = wasm.load(LICENSE ? { license: LICENSE } : {}).then(() => { self.postMessage({ kind: "ready", version: wasm.version() }); });
 ready.catch((e) => self.postMessage({ kind: "view.failed", id: VIEW_ID, message: String(e?.message ?? e) }));
 
-function render(seq, text) {
+// A render with `preview` set (a fresh file: the page sets it on a new example, an opened
+// file, a first read and a restart) shows the file's quick meshes first -- the reader's
+// `preview`, the same solids in the same colours, faceted, in a fraction of the time -- then
+// lets a frame draw them before the exact read blocks this worker; a keystroke's render goes
+// straight to the exact read, which the reader's caches make quick, rather than flash from
+// faceted to smooth on every edit. A package too old to have `preview` reads exactly, as
+// before. A preview that fails is the file's error, said once: the exact read is not tried.
+//
+// `reader` is the wasm module, or test/worker-crash.mjs's stand-in for it.
+export function render(seq, text, preview = false, reader = wasm) {
+    const bytes = new TextEncoder().encode(text);
+    if (preview && typeof reader.preview === "function") {
+        // "native": the file's own axes and units, which is the space the View's Z-up
+        // camera draws.
+        if (!read(seq, "preview", () => reader.preview(bytes, "scad", "native"))) return;
+        afterDraw(() => read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native")));
+        return;
+    }
+    read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native"));
+}
+
+// One read, posted as `kind` and shown; false where it failed (and said so).
+function read(seq, kind, opener) {
     const started = performance.now();
     let scene;
     try {
-        // "native": the file's own axes and units, which is the space the View's Z-up
-        // camera draws.
-        scene = wasm.open(new TextEncoder().encode(text), "scad", undefined, "native");
+        scene = opener();
     } catch (error) {
         // A trap (a panic, or running out of memory on a huge $fn or a large
         // linear_extrude) leaves the wasm instance poisoned: the next draw or showScene
         // would trap too, so this is reported as a crash instead of a read error, and the
         // page remakes the worker rather than going on using it.
-        if (trapped(error)) { self.postMessage({ kind: "crashed", message: String(error?.message ?? error) }); return; }
+        if (trapped(error)) { self.postMessage({ kind: "crashed", message: String(error?.message ?? error) }); return false; }
         self.postMessage({ ok: false, seq, error: String(error && error.message ? error.message : error) });
-        return;
+        return false;
     }
     const triangles = scene.triangleCount();
     const ms = Math.round(performance.now() - started);
-    self.postMessage({ ok: true, kind: "scene", seq, triangles, ms });
+    self.postMessage({ ok: true, kind, seq, triangles, ms });
     try {
         showScene(scene);
     } catch (e) {
-        if (trapped(e)) self.postMessage({ kind: "crashed", message: String(e?.message ?? e) });
-        else throw e;
+        if (trapped(e)) { self.postMessage({ kind: "crashed", message: String(e?.message ?? e) }); return false; }
+        throw e;
     }
+    return true;
 }
 
 function dispatch(data) {
-    if (data.kind === "render") { render(data.seq, data.text); return; }
+    if (data.kind === "render") { render(data.seq, data.text, data.preview === true); return; }
     if (data.kind === "reframe") { framedAt = null; return; }
     host.handle(data);
 }

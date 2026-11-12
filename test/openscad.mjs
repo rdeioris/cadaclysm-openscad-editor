@@ -36,6 +36,27 @@ for (const example of EXAMPLES) {
     }
 }
 
+// The preview the page shows first on a fresh file (where the package has one): the same
+// model, as meshes -- its bounds the exact read's, near enough for faceting.
+if (typeof wasm.preview === "function") {
+    for (const example of EXAMPLES) {
+        const bytes = new TextEncoder().encode(example.source);
+        const quick = wasm.preview(bytes, "scad", "native");
+        const exact = wasm.open(bytes, "scad", undefined, "native");
+        try {
+            assert.ok(quick.triangleCount() > 100, `${example.id}: preview ${quick.triangleCount()} triangles`);
+            const [q, e] = [quick.bounds(), exact.bounds()];
+            assert.ok(Math.abs(q[3] - e[3]) < 0.05 * e[3], `${example.id}: preview radius ${q[3]} vs ${e[3]}`);
+        } finally {
+            quick.free();
+            exact.free();
+        }
+    }
+    assert.throws(() => wasm.preview(new TextEncoder().encode("cube(10;"), "scad", "native"), (e) => /\d/.test(String(e)));
+} else {
+    console.log("openscad: this package has no preview; skipped");
+}
+
 // A broken file is the reader's error, not a crash.
 assert.throws(() => wasm.open(new TextEncoder().encode("cube(10;"), "scad", undefined, "native"), (e) => /\d/.test(String(e)));
 console.log(`openscad: ok (${EXAMPLES.length} examples)`);
