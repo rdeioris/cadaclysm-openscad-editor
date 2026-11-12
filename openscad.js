@@ -4,8 +4,8 @@
 // transferred to it -- the bridge's own client (viewer-client.js) carries the view's
 // traffic and this page's input to it; the camera is left where it was so an edit does not
 // yank the view. Nothing is uploaded.
-import { attachViewer } from "./viewer-client.js";
-import { activationListen } from "./view-activation.js";
+import { attachViewer } from "./pkg/viewer-client.js";
+import { activationListen } from "./pkg/view-activation.js";
 import { createEditor } from "./vendor/editor.js";
 import { EXAMPLES } from "./openscad-script.js";
 

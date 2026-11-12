@@ -1,5 +1,5 @@
-// Puts the cadaclysm web package's pkg/ folder -- the WebAssembly module (the readers, the
-// kernel and the View) and its loader -- here, as ./pkg. Not committed: it is the
+// Puts the cadaclysm web package's pkg/ folder -- the WebAssembly module (the readers and the
+// View), its loader and the page modules that go with the View -- here, as ./pkg. Not committed: it is the
 // closed-source part, fetched from the SDK's releases.
 //
 //     npm run setup                          # the release pinned below, from GitHub
@@ -10,14 +10,14 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
 
-// TODO(0.14): the editor needs the View class, which the web package has from 0.14 on; until
-// 0.14 is released, set the package up from a local build with --zip or --pkg. Check the
-// asset's name against the 0.14 release when it ships.
+// The reader package: the readers and the View, no kernel (the editor only reads). The View
+// class and its page modules are in the web package from 0.14 on.
 const VERSION = "0.14.0";
-const ASSET = `cadaclysm-${VERSION}-web.zip`;
+const ASSET = `cadaclysm-${VERSION}-web-reader.zip`;
 const URL = `https://github.com/rdeioris/cadaclysm-sdk/releases/download/v${VERSION}/${ASSET}`;
-// What the editor loads from the package.
-const NEEDED = ["cadaclysm.js", "cadaclysm_bg.wasm", "index.js", "view.js"];
+// What the editor loads from the package: the module, and the page modules beside view.js
+// (the View's host in the worker, its client on the page, tap-to-activate, the canvas size).
+const NEEDED = ["cadaclysm.js", "cadaclysm_bg.wasm", "index.js", "view.js", "viewer-host.js", "viewer-client.js", "view-activation.js", "view-canvas.js"];
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "pkg");

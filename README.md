@@ -17,12 +17,12 @@ The cadaclysm logo, the nut struck by lightning, written in OpenSCAD: the last e
 ```
 index.html ── openscad.js ─────────── CodeMirror 6 editor (vendor/editor.js, from editor.js)
                 │  openscad-script.js   the example files
-                │  viewer-client.js     the view's canvas, transferred to the worker,
-                │  view-activation.js   its size, input and picks
+                │  pkg/viewer-client.js   the view's canvas, transferred to the worker,
+                │  pkg/view-activation.js its size, input and picks
                 ▼
             openscad-worker.js (module worker) ── pkg/  (the cadaclysm web package)
                 open(text, "scad") -> Scene      the OpenSCAD reader: CSG to a mesh
-                viewer-host.js -> View           draws it (WebGPU, WebGL2 fallback)
+                pkg/viewer-host.js -> View       draws it (WebGPU, WebGL2 fallback)
 ```
 
 - **The editor** is [CodeMirror 6](https://codemirror.net/) with a small OpenSCAD tokenizer
@@ -39,7 +39,7 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
   `$fn`, drawn at once, then exactly. Edits go straight to the exact read. A package without
   `preview` reads exactly every time.
 - **Drawing.** The worker also owns the package's `View`, on an OffscreenCanvas that the page
-  hands over (`viewer-client.js` on the page, `viewer-host.js` in the worker). Only the
+  hands over (`pkg/viewer-client.js` on the page, `pkg/viewer-host.js` in the worker). Only the
   triangle count and the read time come back to the page. The View draws it with WebGPU where the browser has it and falls back to WebGL2 otherwise
   (`?backend=webgl2` forces it). The camera keeps its place across edits unless the model
   outgrows the frame. Drag to orbit, right-drag to pan, wheel to zoom, double-click to frame
@@ -59,19 +59,16 @@ npm run setup
 npm run build
 ```
 
-`npm run setup` puts the cadaclysm web package's `pkg/` folder here. That folder holds the
-WebAssembly module (the readers, the kernel and the View) and its loader. It is fetched from
-the [SDK's releases](https://github.com/rdeioris/cadaclysm-sdk/releases) and never committed.
-The editor needs the `View` class, which the web package has from 0.14 on.
-
-> **TODO(0.14):** 0.14 is not released yet. Until it is, set the package up from a copy you
-> already have:
->
-> ```bash
-> npm run setup -- --zip path/to/cadaclysm-0.14.0-web.zip
-> ```
->
-> or from a local build's `pkg/` folder with `npm run setup -- --pkg path/to/pkg`.
+`npm run setup` puts the `pkg/` folder of the cadaclysm reader web package here. That folder
+holds the WebAssembly module (the readers and the View) and its loader. It also holds the
+page modules that go with the View, which the editor imports from there instead of keeping
+copies: `viewer-host.js` and `viewer-client.js` (a View in a worker, drawing a canvas the
+page hands over), `view-activation.js` (tap the view to turn it on) and `view-canvas.js`
+(the canvas's capped drawing size). It is fetched from the
+[SDK's releases](https://github.com/rdeioris/cadaclysm-sdk/releases) and never committed.
+The editor needs the `View` class, which the web package has from 0.14 on. A package you
+already have works too: `npm run setup -- --zip <package.zip>`, or a `pkg/` folder with
+`npm run setup -- --pkg <folder>`.
 
 `npm run build` bundles CodeMirror into `vendor/editor.js`.
 
@@ -115,7 +112,6 @@ The tests run under Node:
 | `openscad-worker.js` | the module worker: the reader and the View |
 | `openscad-script.js` | the example files |
 | `editor.js` | the CodeMirror editor and the OpenSCAD tokenizer (bundled into `vendor/`) |
-| `viewer-client.js`, `viewer-host.js`, `view-activation.js`, `forge-canvas.js` | the 3D view |
 | `chrome.css`, `notebook.css`, `font/`, `favicon.svg`, `mark-dark.svg` | the look |
 | `scripts/setup.mjs`, `scripts/serve.mjs` | fetch the package; a static server |
 

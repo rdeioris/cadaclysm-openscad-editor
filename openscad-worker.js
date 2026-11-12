@@ -35,7 +35,7 @@
 // `markDirty(id)` themselves: they change the hosted View directly, outside `view.call`,
 // which the host has no other way to notice needs a draw.
 import * as wasm from "./pkg/index.js";
-import { createViewerHost } from "./viewer-host.js";
+import { createViewerHost } from "./pkg/viewer-host.js";
 
 const VIEW_ID = 1;
 
