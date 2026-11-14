@@ -3,8 +3,8 @@
 An OpenSCAD editor that runs in the browser. Type OpenSCAD on the left and see, on the right,
 the solid that the [cadaclysm](https://cadaclysm.blitter.studio/) OpenSCAD reader builds from
 it, redrawn as you type. A mistake is reported with its line, and the view keeps the last file
-that read. The menu holds six example files. You can open a `.scad` file of your own and save
-the text back as `.scad`.
+that read. The menu holds six example files. You can open a `.scad` file of your own, save
+the text back as `.scad`, and export the solid as STEP, BREP, STL or glTF.
 
 The kernel runs in a worker in your browser, so nothing is uploaded.
 
@@ -48,6 +48,12 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
   reports it, and the page replaces the worker and its canvas and reads the text again.
 - **Downloads.** *Save .scad* downloads the editor's text. *Open a file…* reads a `.scad`
   file locally.
+- **Export.** *Export…* writes the solid on screen (the last exact read; not offered over a
+  preview or a failed read) as STEP, BREP (OCCT's `.brep`), STL or glTF (`.glb`), in the
+  worker (`openscad-export.js`). The kernel reads the text again as solids with
+  `cadaclysm_blacksmith_open_file(bytes, "scad")`. Those solids carry no colours, so each one
+  gets its colour back from the read scene's tree before the file is written. The menu is
+  shown only for a kernel package.
 
 ## Setup
 

@@ -8,6 +8,7 @@ import { attachViewer } from "./pkg/viewer-client.js";
 import { activationListen } from "./pkg/view-activation.js";
 import { createEditor } from "./vendor/editor.js";
 import { EXAMPLES } from "./openscad-script.js";
+import { FORMATS } from "./openscad-export.js";
 
 const $ = (id) => document.getElementById(id);
 // A keystroke waits this long for the next before the text is read.
@@ -41,10 +42,17 @@ let previewNext = true;
 // Set by `restart` just before its `boot()`: the next `ready` re-frames the camera and
 // re-sends the current text, rather than waiting on whatever was already queued in `waiting`.
 let pendingRestart = false;
+// The Export menu: whether this package can export (the worker's `ready` says), whether the
+// view shows an exact read of the text to export (a finished read, not a preview or a failed
+// one), and the format being written, if any.
+let canExport = false, exactShown = false, exporting = null;
 
 async function boot() {
     ready = false;
     viewFailed = false;
+    exactShown = false;
+    exporting = null;
+    updateExport();
     const params = new URLSearchParams(location.search);
     // Awaited before the worker exists, not after: a worker's own early messages (`ready`,
     // or a `view.failed` from a View that fails to create) would otherwise have nowhere
@@ -69,6 +77,8 @@ async function boot() {
         if (data.kind === "ready") {
             ready = true;
             $("versions").textContent = `cadaclysm ${data.version}`;
+            canExport = data.kernel === true;
+            updateExport();
             setStatus("ready", "ready");
             if (pendingRestart) {
                 pendingRestart = false;
@@ -79,6 +89,7 @@ async function boot() {
             return;
         }
         if (data.kind === "crashed") { restart(data.message); return; }
+        if (data.kind === "exported" || data.kind === "export.failed") { exported(data); return; }
         if (typeof data.kind === "string" && data.kind.startsWith("view.")) { client?.receive(data); return; }
         if (data.seq !== inflight) return;   // stale: a newer text is on its way
         if (data.kind === "preview") {
@@ -89,9 +100,13 @@ async function boot() {
                 setStatus(`preview · refining…`, "");
             }
             $("problem").textContent = "";
+            exactShown = false;
+            updateExport();
             return;
         }
         inflight = null;
+        exactShown = data.ok === true;
+        updateExport();
         if (data.ok) {
             // Not over a failed view: client.ready's own rejection already said so, and
             // that stays the status line's last word rather than a triangle count that
@@ -208,8 +223,40 @@ async function openFile(file) {
 }
 
 function download() {
-    const name = loaded ? `${loaded.id}.scad` : "model.scad";
-    const url = URL.createObjectURL(new Blob([editor.state.doc.toString()], { type: "text/plain" }));
+    save(new Blob([editor.state.doc.toString()], { type: "text/plain" }), loaded ? `${loaded.id}.scad` : "model.scad");
+}
+
+// ---- the Export menu ------------------------------------------------------------------------
+
+// The menu is shown for a kernel package only, and offered while the view shows an exact read
+// and no export is being written.
+function updateExport() {
+    const menu = $("export");
+    menu.hidden = !canExport;
+    menu.disabled = !canExport || !exactShown || exporting !== null;
+}
+
+function requestExport(format) {
+    if (!worker || !FORMATS[format]) return;
+    exporting = format;
+    updateExport();
+    setStatus(`exporting ${FORMATS[format].label}…`, "");
+    worker.postMessage({ kind: "export", format });
+}
+
+// The worker's answer: the file downloaded, or its error on the status line.
+function exported(data) {
+    exporting = null;
+    updateExport();
+    const format = FORMATS[data.format];
+    if (data.kind === "export.failed") { setStatus(`not exported: ${data.error}`, "error"); return; }
+    const name = `${loaded ? loaded.id : "model"}.${format.ext}`;
+    save(new Blob([data.bytes], { type: format.type }), name);
+    setStatus(`${name} · ${Math.max(1, Math.round(data.bytes.byteLength / 1024)).toLocaleString()} KB`, "ready");
+}
+
+function save(blob, name) {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = name;
@@ -245,6 +292,17 @@ if (!supported()) {
         if (file) openFile(file);
     });
     $("download").addEventListener("click", download);
+    for (const [key, format] of Object.entries(FORMATS)) {
+        const o = document.createElement("option");
+        o.value = key;
+        o.textContent = `${format.label} (.${format.ext})`;
+        $("export").appendChild(o);
+    }
+    $("export").addEventListener("change", () => {
+        const format = $("export").value;
+        $("export").value = "";
+        requestExport(format);
+    });
     const first = EXAMPLES.find((e) => e.id === new URLSearchParams(location.search).get("example")) ?? EXAMPLES[0];
     loaded = first;
     setText(first.source);

@@ -12,7 +12,11 @@
 // `Scene` and shows it itself) -- with `preview` set, first `{ ok: true, kind: "preview", seq,
 // triangles, ms }` for the quick meshes shown while the exact read runs (`render` below) -- or,
 // on failure, `{ ok: false, seq, error }` -- the reader's
-// own words, a syntax error's line included; the view keeps the last file that read -- or,
+// own words, a syntax error's line included; the view keeps the last file that read --
+// `{ kind: "export", format }` (the Export menu: the solids on screen as a file, see
+// `exportShown`) answers `{ kind: "exported", format, bytes }` (an ArrayBuffer, transferred)
+// or `{ kind: "export.failed", format, error }`; `ready` carries `kernel`, whether this
+// package can export at all -- or,
 // if the wasm trapped (a panic, or running out of memory on a huge $fn or a large
 // linear_extrude), `{ kind: "crashed", message }`, the page's cue to remake the worker and
 // its canvas rather than keep using a poisoned instance. Plus the host's own `view.*`
@@ -36,6 +40,7 @@
 // which the host has no other way to notice needs a draw.
 import * as wasm from "./pkg/index.js";
 import { createViewerHost } from "./pkg/viewer-host.js";
+import { exactColours, exportFile } from "./openscad-export.js";
 
 const VIEW_ID = 1;
 
@@ -77,6 +82,11 @@ let pendingScene = null;
 // view.ready has shown the preview (a frame later, as `afterDraw` does), or at once if the
 // view failed and nothing will draw it.
 let afterView = null;
+
+// The last exact read shown -- its text and its solids' colours (`exactColours`) -- which is
+// what the Export menu writes; null before one, and while a fresh file's preview stands in
+// for it (the solids on screen are then not this text's exact ones yet).
+let shownExact = null; // { text, colours } | null
 
 // Runs `fn` once the scene just shown has had a frame to draw in: a rAF callback queued
 // behind the draw's own, which hands off to a task so `fn` does not hold that frame up. With
@@ -178,7 +188,7 @@ const host = createViewerHost({ View: wasm.View, post, now: () => performance.no
 // module runs in full, with a notice in the console on every file read.
 // https://cadaclysm.blitter.studio/license
 const LICENSE = null;
-const ready = wasm.load(LICENSE ? { license: LICENSE } : {}).then(() => { self.postMessage({ kind: "ready", version: wasm.version() }); });
+const ready = wasm.load(LICENSE ? { license: LICENSE } : {}).then(() => { self.postMessage({ kind: "ready", version: wasm.version(), kernel: hasKernel(wasm) }); });
 ready.catch((e) => self.postMessage({ kind: "view.failed", id: VIEW_ID, message: String(e?.message ?? e) }));
 
 // A render with `preview` set (a fresh file: the page sets it on a new example, an opened
@@ -198,17 +208,36 @@ export function render(seq, text, preview = false, reader = wasm) {
         // "native": the file's own axes and units, which is the space the View's Z-up
         // camera draws.
         if (!read(seq, "preview", () => reader.preview(bytes, "scad", "native"))) return;
-        afterDraw(() => read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native")));
+        shownExact = null;
+        afterDraw(() => read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native"), text));
         return;
     }
-    read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native"));
+    read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native"), text);
+}
+
+// The Export menu: the last exact read shown (`shownExact`), read again by the kernel as
+// solids and written as `format` (openscad-export.js). A failure -- nothing exact shown yet, a
+// package without the kernel, the kernel's own refusal -- is an `export.failed`, said on the
+// page's status line; a trap is a crash, as a read's is. `kernel` as `render`'s `reader`.
+export function exportShown(format, kernel = wasm) {
+    try {
+        if (!hasKernel(kernel)) throw new Error("this package has no kernel to export with");
+        if (!shownExact) throw new Error("nothing exact to export yet");
+        const bytes = exportFile(kernel, shownExact.text, format, shownExact.colours);
+        const buffer = bytes.buffer.byteLength === bytes.byteLength ? bytes.buffer : bytes.slice().buffer;
+        self.postMessage({ kind: "exported", format, bytes: buffer }, [buffer]);
+    } catch (error) {
+        if (trapped(error)) { self.postMessage({ kind: "crashed", message: String(error?.message ?? error) }); return; }
+        self.postMessage({ kind: "export.failed", format, error: String(error?.message ?? error) });
+    }
 }
 
 // Whether `module` is a kernel build: only those export the kernel's own calls.
 export const hasKernel = (module) => Object.keys(module).some((name) => name.startsWith("cadaclysm_blacksmith_"));
 
-// One read, posted as `kind` and shown; false where it failed (and said so).
-function read(seq, kind, opener) {
+// One read, posted as `kind` and shown; false where it failed (and said so). An exact read's
+// `text` is kept, with its colours, for the Export menu (`shownExact`).
+function read(seq, kind, opener, text = null) {
     const started = performance.now();
     let scene;
     try {
@@ -224,6 +253,9 @@ function read(seq, kind, opener) {
     }
     const triangles = scene.triangleCount();
     const ms = Math.round(performance.now() - started);
+    if (text !== null) {
+        try { shownExact = { text, colours: exactColours(scene) }; } catch { shownExact = { text, colours: null }; }
+    }
     self.postMessage({ ok: true, kind, seq, triangles, ms });
     try {
         showScene(scene);
@@ -237,6 +269,7 @@ function read(seq, kind, opener) {
 function dispatch(data) {
     if (data.kind === "render") { render(data.seq, data.text, data.preview === true); return; }
     if (data.kind === "reframe") { framedAt = null; return; }
+    if (data.kind === "export") { exportShown(data.format); return; }
     host.handle(data);
 }
 

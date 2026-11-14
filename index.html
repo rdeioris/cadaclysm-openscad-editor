@@ -51,7 +51,7 @@ main.wrap { max-width: none; }
     <div>
       <span class="eyebrow">Try the reader</span>
       <h2>OpenSCAD, drawn as you type</h2>
-      <p>The OpenSCAD reader the library ships -- the one behind <code>cadaclysm.open("part.scad")</code> in every language, the viewer and the desktop apps -- running in your browser. Edit the file on the left and the solid on the right follows; a mistake is reported with its line. Drag to orbit, Shift+drag to pan, wheel to zoom. The menu holds more files; yours can be opened and saved, and nothing is uploaded.</p>
+      <p>The OpenSCAD reader the library ships -- the one behind <code>cadaclysm.open("part.scad")</code> in every language, the viewer and the desktop apps -- running in your browser. Edit the file on the left and the solid on the right follows; a mistake is reported with its line. Drag to orbit, Shift+drag to pan, wheel to zoom. The menu holds more files; yours can be opened and saved, and the solid exported as STEP, BREP, STL or glTF. Nothing is uploaded.</p>
     </div>
     <div class="toolbar">
       <span id="status"><span class="dot"></span><span id="status-text">loading…</span></span>
@@ -59,6 +59,7 @@ main.wrap { max-width: none; }
       <button class="tb" id="open" title="A .scad file of your own, read in this page -- nothing is uploaded">Open a file…</button>
       <input type="file" id="file" accept=".scad" hidden>
       <button class="tb" id="download">Save .scad</button>
+      <select class="tb" id="export" title="The solid on screen as a file, written in this page -- nothing is uploaded" disabled hidden><option value="">Export…</option></select>
     </div>
   </div>
   <p id="unsupported">This page needs WebGL2, module workers and WebAssembly. <a href="https://cadaclysm.blitter.studio/mobile_demo/" target="_blank" rel="noopener">The viewer</a> may still work here.</p>

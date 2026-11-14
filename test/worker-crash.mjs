@@ -61,7 +61,7 @@ const name = "openscad-worker";
     // triangle count and a free(); no view exists here, so the worker keeps it as its pending
     // scene (freeing the one before), which is all showScene does without one.
     const log = [];
-    const scene = (n) => ({ triangleCount: () => n, bounds: () => [0, 0, 0, 1], free() {} });
+    const scene = (n) => ({ triangleCount: () => n, bounds: () => [0, 0, 0, 1], treeJson: () => '[{"generator":"brep","colour":[1,0,0]}]', free() {} });
     const reader = {
         cadaclysm_blacksmith_version() {},   // a kernel build, as hasKernel tells one
         preview: (bytes, format, convention) => { log.push(["preview", format, convention]); return scene(10); },
@@ -113,6 +113,66 @@ const name = "openscad-worker";
     drain();
     assert.deepStrictEqual(posted, [{ kind: "crashed", message: "unreachable" }], `${name}: a trapped preview crashes`);
     assert.deepStrictEqual(log, []);
+}
+
+{
+    // ---- exportShown: the Export menu writes the last exact read shown -----------------------
+    // A stand-in kernel: solids are numbers, the file's bytes say what was written from what.
+    const live = new Set();
+    let next = 100;
+    const made = () => { const h = next++; live.add(h); return h; };
+    const calls = [];
+    const kernel = {
+        cadaclysm_blacksmith_open_file: (bytes, format) => { calls.push(["open_file", new TextDecoder().decode(bytes), format]); return Uint32Array.of(made()); },
+        cadaclysm_blacksmith_coloured: (solid, face, r, g, b) => { calls.push(["coloured", face, [r, g, b]]); return made(); },
+        cadaclysm_blacksmith_solid_free: (solid) => { assert.ok(live.delete(solid), `freed ${solid} once`); },
+        cadaclysm_blacksmith_step: (solids, schema, unit) => { calls.push(["step", solids.length, unit]); return "ISO-10303-21;"; },
+        cadaclysm_blacksmith_brep_text: () => "brep",
+        cadaclysm_blacksmith_mesh_file: (solids, format) => new TextEncoder().encode(format),
+        preview: () => ({ triangleCount: () => 1, bounds: () => [0, 0, 0, 1], treeJson: () => "[]", free() {} }),
+        open: () => ({ triangleCount: () => 2, bounds: () => [0, 0, 0, 1], treeJson: () => '[{"generator":"csg","colour":[0,1,0]},{"generator":"brep","colour":[1,0,0]}]', free() {} }),
+    };
+    const drain = () => { for (let i = 0; pendingTimer && i < 4; i++) { const t = pendingTimer; pendingTimer = null; t(); } };
+
+    // A fresh file's preview stands in for the exact read: nothing to export until it lands.
+    posted = []; pendingTimer = null;
+    worker.render(10, "cube(10);", true, kernel);
+    worker.exportShown("step", kernel);
+    assert.deepStrictEqual(posted.at(-1), { kind: "export.failed", format: "step", error: "nothing exact to export yet" }, `${name}: no export over a preview`);
+    worker.post({ kind: "view.failed", id: 1, message: "no GPU" });   // no view here: the exact read follows at once
+    drain();
+    assert.strictEqual(posted.at(-1).kind, "scene");
+
+    // Then the exact read's text, coloured as its exact (brep) node is, the background one skipped.
+    posted = []; calls.length = 0;
+    worker.exportShown("step", kernel);
+    assert.deepStrictEqual(calls, [["open_file", "cube(10);", "scad"], ["coloured", 0xFFFFFFFF, [1, 0, 0]], ["step", 1, 1]], `${name}: the exact text, coloured, in millimetres`);
+    assert.strictEqual(posted.length, 1);
+    assert.strictEqual(posted[0].kind, "exported");
+    assert.strictEqual(new TextDecoder().decode(posted[0].bytes), "ISO-10303-21;");
+    assert.ok(posted[0].bytes instanceof ArrayBuffer, `${name}: the bytes cross as an ArrayBuffer`);
+    assert.strictEqual(live.size, 0, `${name}: every solid freed`);
+
+    posted = [];
+    worker.exportShown("glb", kernel);
+    assert.strictEqual(new TextDecoder().decode(posted[0].bytes), "glb");
+    assert.strictEqual(live.size, 0);
+
+    // The kernel's refusal is an export.failed, and the solids are freed all the same.
+    posted = [];
+    worker.exportShown("step", { ...kernel, cadaclysm_blacksmith_step: () => { throw new Error("step: no"); } });
+    assert.deepStrictEqual(posted, [{ kind: "export.failed", format: "step", error: "step: no" }], `${name}: a refused write is said`);
+    assert.strictEqual(live.size, 0, `${name}: and frees its solids`);
+
+    // A trap is a crash.
+    posted = [];
+    worker.exportShown("step", { ...kernel, cadaclysm_blacksmith_open_file: () => { throw new WebAssembly.RuntimeError("unreachable"); } });
+    assert.deepStrictEqual(posted, [{ kind: "crashed", message: "unreachable" }], `${name}: a trapped export crashes`);
+
+    // A package without the kernel cannot export.
+    posted = [];
+    worker.exportShown("step", { open: kernel.open });
+    assert.strictEqual(posted[0].kind, "export.failed", `${name}: no kernel, no export`);
 }
 
 globalThis.setTimeout = realSetTimeout;
