@@ -63,6 +63,7 @@ const name = "openscad-worker";
     const log = [];
     const scene = (n) => ({ triangleCount: () => n, bounds: () => [0, 0, 0, 1], free() {} });
     const reader = {
+        cadaclysm_blacksmith_version() {},   // a kernel build, as hasKernel tells one
         preview: (bytes, format, convention) => { log.push(["preview", format, convention]); return scene(10); },
         open: (bytes, format, schema, convention) => { log.push(["open", format, convention]); return scene(20); },
     };
@@ -88,6 +89,12 @@ const name = "openscad-worker";
     assert.deepStrictEqual(kinds(), [["scene", 2, 20]], `${name}: an edit reads exactly, at once`);
     assert.deepStrictEqual(log.map((l) => l[0]), ["open"]);
 
+    // A reader build (no kernel): its open already draws meshes, so no preview first.
+    posted = []; pendingTimer = null; log.length = 0;
+    worker.render(6, "cube(6);", true, { preview: reader.preview, open: reader.open });
+    assert.deepStrictEqual(kinds(), [["scene", 6, 20]], `${name}: no kernel, no preview`);
+    assert.deepStrictEqual(log.map((l) => l[0]), ["open"]);
+
     // A package without `preview`: exact, as before.
     posted = []; pendingTimer = null; log.length = 0;
     worker.render(3, "cube(3);", true, { open: reader.open });
@@ -95,14 +102,14 @@ const name = "openscad-worker";
 
     // A preview that fails is said once, and the exact read is not tried.
     posted = []; pendingTimer = null; log.length = 0;
-    worker.render(4, "cube(4;", true, { preview: () => { throw new Error("line 1: expected )"); }, open: reader.open });
+    worker.render(4, "cube(4;", true, { cadaclysm_blacksmith_version() {}, preview: () => { throw new Error("line 1: expected )"); }, open: reader.open });
     drain();
     assert.deepStrictEqual(posted, [{ ok: false, seq: 4, error: "line 1: expected )" }], `${name}: a failed preview is the error`);
     assert.deepStrictEqual(log, [], `${name}: and no exact read follows it`);
 
     // A preview that traps is a crash, and nothing more is read on the poisoned instance.
     posted = []; pendingTimer = null;
-    worker.render(5, "cube(5);", true, { preview: () => { throw new WebAssembly.RuntimeError("unreachable"); }, open: reader.open });
+    worker.render(5, "cube(5);", true, { cadaclysm_blacksmith_version() {}, preview: () => { throw new WebAssembly.RuntimeError("unreachable"); }, open: reader.open });
     drain();
     assert.deepStrictEqual(posted, [{ kind: "crashed", message: "unreachable" }], `${name}: a trapped preview crashes`);
     assert.deepStrictEqual(log, []);

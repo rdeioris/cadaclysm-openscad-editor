@@ -1,5 +1,5 @@
-// Puts the cadaclysm web package's pkg/ folder -- the WebAssembly module (the readers and the
-// View), its loader and the page modules that go with the View -- here, as ./pkg. Not committed: it is the
+// Puts the cadaclysm web package's pkg/ folder -- the WebAssembly module (the readers, the
+// kernel and the View), its loader and the page modules that go with the View -- here, as ./pkg. Not committed: it is the
 // closed-source part, fetched from the SDK's releases.
 //
 //     npm run setup                          # the release pinned below, from GitHub
@@ -10,10 +10,11 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
 
-// The reader package: the readers and the View, no kernel (the editor only reads). The View
-// class and its page modules are in the web package from 0.14 on.
-const VERSION = "0.14.0";
-const ASSET = `cadaclysm-${VERSION}-web-reader.zip`;
+// The web package's pkg/: the readers, the kernel and the View. With the kernel the OpenSCAD
+// reader builds exact solids (without it, meshes), and `preview` (0.14.2 on) shows a fresh
+// file's meshes while they build. The View class and its page modules are in it from 0.14 on.
+const VERSION = "0.14.2";
+const ASSET = `cadaclysm-${VERSION}-web.zip`;
 const URL = `https://github.com/rdeioris/cadaclysm-sdk/releases/download/v${VERSION}/${ASSET}`;
 // What the editor loads from the package: the module, and the page modules beside view.js
 // (the View's host in the worker, its client on the page, tap-to-activate, the canvas size).
@@ -63,7 +64,7 @@ async function main() {
         from = zip ?? ASSET;
     }
     const missing = NEEDED.filter((f) => !files.has(f));
-    if (missing.length) throw new Error(`${from} has no ${missing.join(", ")}: the editor needs the web package's pkg/ (the reader and the View)`);
+    if (missing.length) throw new Error(`${from} has no ${missing.join(", ")}: the editor needs the web package's pkg/ (the readers, the kernel and the View)`);
     // Written beside, then swapped in: a failed setup leaves the pkg/ there was.
     const next = `${out}.next`;
     rmSync(next, { recursive: true, force: true });

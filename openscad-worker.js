@@ -187,12 +187,14 @@ ready.catch((e) => self.postMessage({ kind: "view.failed", id: VIEW_ID, message:
 // lets a frame draw them before the exact read blocks this worker; a keystroke's render goes
 // straight to the exact read, which the reader's caches make quick, rather than flash from
 // faceted to smooth on every edit. A package too old to have `preview` reads exactly, as
-// before. A preview that fails is the file's error, said once: the exact read is not tried.
+// before, and so does one without the kernel (`--pkg` of a reader build), whose `open` builds
+// the same meshes `preview` would: reading twice would only cost the time. A preview that
+// fails is the file's error, said once: the exact read is not tried.
 //
 // `reader` is the wasm module, or test/worker-crash.mjs's stand-in for it.
 export function render(seq, text, preview = false, reader = wasm) {
     const bytes = new TextEncoder().encode(text);
-    if (preview && typeof reader.preview === "function") {
+    if (preview && typeof reader.preview === "function" && hasKernel(reader)) {
         // "native": the file's own axes and units, which is the space the View's Z-up
         // camera draws.
         if (!read(seq, "preview", () => reader.preview(bytes, "scad", "native"))) return;
@@ -201,6 +203,9 @@ export function render(seq, text, preview = false, reader = wasm) {
     }
     read(seq, "scene", () => reader.open(bytes, "scad", undefined, "native"));
 }
+
+// Whether `module` is a kernel build: only those export the kernel's own calls.
+export const hasKernel = (module) => Object.keys(module).some((name) => name.startsWith("cadaclysm_blacksmith_"));
 
 // One read, posted as `kind` and shown; false where it failed (and said so).
 function read(seq, kind, opener) {

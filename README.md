@@ -21,7 +21,7 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
                 │  pkg/view-activation.js its size, input and picks
                 ▼
             openscad-worker.js (module worker) ── pkg/  (the cadaclysm web package)
-                open(text, "scad") -> Scene      the OpenSCAD reader: CSG to a mesh
+                open(text, "scad") -> Scene      the OpenSCAD reader: CSG to solids
                 pkg/viewer-host.js -> View       draws it (WebGPU, WebGL2 fallback)
 ```
 
@@ -32,7 +32,7 @@ index.html ── openscad.js ─────────── CodeMirror 6 edi
   module and reads each text with `open(bytes, "scad", undefined, "native")`. This is the same
   OpenSCAD reader that sits behind `cadaclysm.open("part.scad")` in every SDK language. It
   runs the program and builds its CSG (unions, differences, hulls, extrusions and the rest) as
-  a mesh, with the file's own colours and its feature edges. One read runs at a time. The
+  exact solids, with the file's own colours and their edges. One read runs at a time. The
   newest text waits behind it, and an answer for text that has since changed is dropped.
   A fresh file (the first one, a new example, an opened file) is read twice: first with
   `preview(bytes, "scad", "native")`, the same parts as quick meshes faceted at the file's
@@ -59,8 +59,8 @@ npm run setup
 npm run build
 ```
 
-`npm run setup` puts the `pkg/` folder of the cadaclysm reader web package here. That folder
-holds the WebAssembly module (the readers and the View) and its loader. It also holds the
+`npm run setup` puts the `pkg/` folder of the cadaclysm web package here. That folder
+holds the WebAssembly module (the readers, the kernel and the View) and its loader. It also holds the
 page modules that go with the View, which the editor imports from there instead of keeping
 copies: `viewer-host.js` and `viewer-client.js` (a View in a worker, drawing a canvas the
 page hands over), `view-activation.js` (tap the view to turn it on) and `view-canvas.js`
